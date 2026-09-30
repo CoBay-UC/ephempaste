@@ -1,0 +1,73 @@
+services:
+  database:
+    image: postgres:17-alpine
+    container_name: ephempaste-database
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: "ephempaste"
+      POSTGRES_USER: "ephempaste"
+      POSTGRES_PASSWORD: "CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD"
+
+    volumes:
+      - ephempaste-database:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ephempaste -d ephempaste
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  ephempaste:
+    image: ghcr.io/cobay-uc/ephempaste:latest
+    container_name: ephempaste
+    restart: unless-stopped
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    environment:
+      # ============================================================
+      # APPLICATION
+      # ============================================================
+
+      APP_NAME: "EphemPaste"
+      APP_BASE_URL: "https://text.example.com"
+      APP_PORT: "17010"
+      APP_ENV: "production"
+      APP_DEBUG: "false"
+
+
+      # ============================================================
+      # PASTE SETTINGS
+      # ============================================================
+
+      PASTE_CODE_LENGTH: "6"
+      PASTE_MAX_LENGTH: "5000"
+      PASTE_LIFETIME_HOURS: "72"
+      PASTE_CODE_CHARSET: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+      CLEANUP_INTERVAL_SECONDS: "300"
+
+
+      # ============================================================
+      # DATABASE
+      # ============================================================
+
+      DB_HOST: "database"
+      DB_PORT: "5432"
+      DB_NAME: "ephempaste"
+      DB_USER: "ephempaste"
+      DB_PASSWORD: "CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD"
+
+    ports:
+      - "17010:80"
+
+
+volumes:
+  ephempaste-database:
+    name: ephempaste-database
